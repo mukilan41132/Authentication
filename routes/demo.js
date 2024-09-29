@@ -12,7 +12,7 @@ router.get('/', function (req, res) {
 router.get('/signup', function (req, res) {
 
   let sessionInputData = req.session.inputData;
-  console.log("15",sessionInputData)
+
   if (!sessionInputData) {
     sessionInputData = {
       hasError: false,
@@ -26,7 +26,19 @@ router.get('/signup', function (req, res) {
 });
 
 router.get('/login', function (req, res) {
-  res.render('login');
+
+  let loginsessionInputData = req.session.inputData;
+
+  if (!loginsessionInputData) {
+    loginsessionInputData = {
+      hasError: false,
+      email: '',
+      password: ''
+    }
+  }
+  req.session.inputData = null;
+  res.render('login', { inputData: loginsessionInputData });
+
 });
 
 router.post('/signup', async function (req, res) {
@@ -58,8 +70,17 @@ router.post('/signup', async function (req, res) {
     email: enteremail
   })
   if (existingUser) {
-    console.log('User Exist already !!')
-    return res.redirect('/signup');
+    req.session.inputData = {
+      hasError: true,
+      message: 'User Exists already !!',
+      email: enteremail,
+      confirmedEmail: confirmedEmail,
+      password: enteredPassword
+    }
+    req.session.save(function () {
+      res.redirect('/signup');
+    })
+    return;
   }
   const hashPassword = await bcrypt.hash(enteredPassword, 12);
 
@@ -82,13 +103,30 @@ router.post('/login', async function (req, res) {
   })
 
   if (!existingUser) {
-    console.log('Could Not log in !!')
-    return res.redirect('/login');
+    req.session.inputData = {
+      hasError: true,
+      message: 'Could Not log in !!',
+      email: enteremail,
+      password: enteredPassword
+    }
+    req.session.save(function () {
+      res.redirect('/login');
+    })
+    return
   }
   const PasswordAreEqual = await bcrypt.compare(enteredPassword, existingUser.Password);
   if (!PasswordAreEqual) {
-    console.log('Password IN Correct');
-    return res.redirect('/login');
+    req.session.inputData = {
+      hasError: true,
+      message: 'Password IN Correct',
+      email: enteremail,
+      confirmedEmail: confirmedEmail,
+      password: enteredPassword
+    }
+    req.session.save(function () {
+      res.redirect('/login');
+    })
+    return;
   }
 
 
