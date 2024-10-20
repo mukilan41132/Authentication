@@ -1,9 +1,9 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const db = require('../data/database');
-
-
 const router = express.Router();
+
+
 router.get('/', function (req, res) {
   res.render('welcome');
 });
@@ -37,6 +37,7 @@ router.get('/login', function (req, res) {
     }
   }
   req.session.inputData = null;
+  console.log(loginsessionInputData)
   res.render('login', { inputData: loginsessionInputData });
 
 });
@@ -110,12 +111,16 @@ router.post('/login', async function (req, res) {
       email: enteremail,
       password: enteredPassword
     }
+
     req.session.save(function () {
       res.redirect('/login');
     })
+
     return
   }
+
   const PasswordAreEqual = await bcrypt.compare(enteredPassword, existingUser.Password);
+
   if (!PasswordAreEqual) {
     req.session.inputData = {
       hasError: true,
@@ -123,44 +128,48 @@ router.post('/login', async function (req, res) {
       email: enteremail,
       password: enteredPassword
     }
+
     req.session.save(function () {
       res.redirect('/login');
     })
     return;
   }
-  req.session.user = {
-    id: existingUser._id.toString(),
-    email: existingUser.email,
-    isAdmin: existingUser.isAdmin
-  }
+
+  req.session.user ={ id: existingUser._id.toString(), email: existingUser.email}
   req.session.isAuthenticated = true;
+  
   req.session.save(function () {
     res.redirect('/admin')
   })
 });
 
 router.get('/admin', async function (req, res) {
+  console.log(req.session.isAuthenticated)
   if (!req.session.isAuthenticated) {
     return res.status(401).render('401');
   }
-  const User = await db
-    .getDb()
-    .collection('users')
-    .findOne({ _id: req.session.user.id });
+
+  const User = await db.getDb().collection('users').findOne({ _id: req.session.user.id });
+
   if (!User || !User.isAdmin) {
     res.status(403).render('403');
   }
+
   res.render('admin');
 });
+
 router.get('/Profile', function (req, res) {
+
   if (!req.session.isAuthenticated) {
     return res.status(401).render('401');
   }
+
   res.render('Profile');
 });
+
 router.post('/logout', function (req, res) {
   req.session.user = null
-  req.session.isAuthenticated = true;
+  req.session.isAuthenticated = false;
   res.redirect('/');
 });
 
