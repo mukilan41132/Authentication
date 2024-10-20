@@ -4,7 +4,6 @@ const db = require('../data/database');
 
 
 const router = express.Router();
-
 router.get('/', function (req, res) {
   res.render('welcome');
 });
@@ -22,6 +21,7 @@ router.get('/signup', function (req, res) {
     }
   }
   req.session.inputData = null;
+
   res.render('signup', { inputData: sessionInputData });
 });
 
@@ -61,9 +61,9 @@ router.post('/signup', async function (req, res) {
       password: enteredPassword
     }
     req.session.save(function () {
-      return res.render('/signup')
-    })
-
+      res.render('/signup')
+    });
+    return;
   }
 
   const existingUser = await db.getDb().collection('users').findOne({
@@ -98,14 +98,15 @@ router.post('/login', async function (req, res) {
   const enteremail = userData.email;
   const enteredPassword = userData.password;
 
-  const existingUser = await db.getDb().collection('users').findOne({
-    email: enteremail
-  })
+  const existingUser = await db
+    .getDb()
+    .collection('users')
+    .findOne({ email: enteremail })
 
   if (!existingUser) {
     req.session.inputData = {
       hasError: true,
-      message: 'Could Not log in !!',
+      message: 'Could Not log you in please check your credentials!!',
       email: enteremail,
       password: enteredPassword
     }
@@ -120,7 +121,6 @@ router.post('/login', async function (req, res) {
       hasError: true,
       message: 'Password IN Correct',
       email: enteremail,
-      confirmedEmail: confirmedEmail,
       password: enteredPassword
     }
     req.session.save(function () {
@@ -128,22 +128,36 @@ router.post('/login', async function (req, res) {
     })
     return;
   }
-
-
-  req.session.user = { id: existingUser._id.toString(), email: existingUser.email }
+  req.session.user = {
+    id: existingUser._id.toString(),
+    email: existingUser.email,
+    isAdmin: existingUser.isAdmin
+  }
   req.session.isAuthenticated = true;
   req.session.save(function () {
     res.redirect('/admin')
   })
 });
 
-router.get('/admin', function (req, res) {
+router.get('/admin', async function (req, res) {
   if (!req.session.isAuthenticated) {
     return res.status(401).render('401');
   }
+  const User = await db
+    .getDb()
+    .collection('users')
+    .findOne({ _id: req.session.user.id });
+  if (!User || !User.isAdmin) {
+    res.status(403).render('403');
+  }
   res.render('admin');
 });
-
+router.get('/Profile', function (req, res) {
+  if (!req.session.isAuthenticated) {
+    return res.status(401).render('401');
+  }
+  res.render('Profile');
+});
 router.post('/logout', function (req, res) {
   req.session.user = null
   req.session.isAuthenticated = true;
