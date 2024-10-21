@@ -83,6 +83,7 @@ router.post('/signup', async function (req, res) {
     })
     return;
   }
+  
   const hashPassword = await bcrypt.hash(enteredPassword, 12);
 
   const user = {
