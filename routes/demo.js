@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const db = require('../data/database');
 const router = express.Router();
-
+const { ObjectId } = require('mongodb');
 
 router.get('/', function (req, res) {
   res.render('welcome');
@@ -37,7 +37,7 @@ router.get('/login', function (req, res) {
     }
   }
   req.session.inputData = null;
-  console.log(loginsessionInputData)
+  // console.log(loginsessionInputData)
   res.render('login', { inputData: loginsessionInputData });
 
 });
@@ -83,7 +83,7 @@ router.post('/signup', async function (req, res) {
     })
     return;
   }
-  
+
   const hashPassword = await bcrypt.hash(enteredPassword, 12);
 
   const user = {
@@ -136,31 +136,31 @@ router.post('/login', async function (req, res) {
     return;
   }
 
-  req.session.user ={ id: existingUser._id.toString(), email: existingUser.email}
+  req.session.user = { id: existingUser._id.toString(), email: existingUser.email }
   req.session.isAuthenticated = true;
-  
   req.session.save(function () {
-    res.redirect('/admin')
+    res.redirect('/Profile')
   })
 });
 
 router.get('/admin', async function (req, res) {
-  console.log(req.session.isAuthenticated)
+  // console.log(req.session.isAuthenticated)
   if (!req.session.isAuthenticated) {
     return res.status(401).render('401');
   }
-
-  const User = await db.getDb().collection('users').findOne({ _id: req.session.user.id });
-
-  if (!User || !User.isAdmin) {
-    res.status(403).render('403');
+  userId = new ObjectId(req.session.user.id);
+  // console.log("Session User ID:", userId);
+  const user = await db.getDb().collection('users').findOne({_id: userId });
+  // console.log("153", user)
+  if (!user || !user.isAdmin) {
+    return res.status(403).render('403');
   }
 
   res.render('admin');
 });
 
 router.get('/Profile', function (req, res) {
-
+  console.log(req)
   if (!req.session.isAuthenticated) {
     return res.status(401).render('401');
   }
